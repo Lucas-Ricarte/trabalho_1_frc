@@ -1,16 +1,4 @@
-/*
- * Cliente DNS - Trabalho 01 (Fundamentos de Redes de Computadores)
- * ------------------------------------------------------------------
- * Realiza consultas DNS do tipo MX (mail exchanger) montando o payload
- * UDP manualmente, conforme RFC 1034/1035, sem uso de bibliotecas de
- * resolução de nomes (getaddrinfo, gethostbyname, resolv.h, etc).
- *
- * Uso:
- *   ./dns_client <nome_dominio> <ip_servidor_dns>
- *
- * Exemplo:
- *   ./dns_client unb.br 8.8.8.8
- */
+/* Cliente DNS (consultas MX via UDP) */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +15,42 @@
 #include "dns_encode.h"
 #include "dns_parse.h"
 
-/* ------------------------------------------------------------------ */
+/* Espera até TIMEOUT_SEC por uma resposta com o ID esperado, ignorando as demais. */
+static int aguardar_resposta(int sock, uint16_t query_id,
+                             unsigned char *response, size_t size) {
+    struct timeval agora, limite;
+    gettimeofday(&limite, NULL);
+    limite.tv_sec += TIMEOUT_SEC;
+
+    for (;;) {
+        gettimeofday(&agora, NULL);
+        struct timeval restante;
+        restante.tv_sec = limite.tv_sec - agora.tv_sec;
+        restante.tv_usec = limite.tv_usec - agora.tv_usec;
+        if (restante.tv_usec < 0) {
+            restante.tv_sec--;
+            restante.tv_usec += 1000000;
+        }
+        if (restante.tv_sec < 0 || (restante.tv_sec == 0 && restante.tv_usec == 0)) {
+            return -1;
+        }
+
+        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &restante, sizeof(restante));
+
+        ssize_t len = recvfrom(sock, response, size, 0, NULL, NULL);
+        if (len < 0) {
+            return -1;
+        }
+
+        if (len >= (ssize_t) sizeof(dns_header_t)) {
+            const dns_header_t *hdr = (const dns_header_t *) response;
+            if (ntohs(hdr->id) == query_id) {
+                return (int) len;
+            }
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 3) {
         fprintf(stderr, "Uso: %s <nome_dominio> <ip_servidor_dns>\n", argv[0]);
@@ -39,22 +62,15 @@ int main(int argc, char *argv[]) {
 
     srand((unsigned int) time(NULL) ^ (unsigned int) getpid());
 
-    /* Monta o pacote de consulta */
     unsigned char query[MAX_PACKET];
     uint16_t query_id;
     int query_len = build_query(dominio, query, &query_id);
 
-    /* Cria o socket UDP */
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) {
         perror("socket");
         return EXIT_FAILURE;
     }
-
-    struct timeval tv;
-    tv.tv_sec = TIMEOUT_SEC;
-    tv.tv_usec = 0;
-    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
     struct sockaddr_in server_addr;
     memset(&server_addr, 0, sizeof(server_addr));
@@ -70,7 +86,7 @@ int main(int argc, char *argv[]) {
     int recv_len = -1;
     int tentativa;
 
-    for (tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
+    for (tentativa = 1; tentativa <= MAX_TENTATIVAS && recv_len < 0; tentativa++) {
         ssize_t sent = sendto(sock, query, query_len, 0,
                                (struct sockaddr *) &server_addr, sizeof(server_addr));
         if (sent < 0) {
@@ -79,25 +95,7 @@ int main(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        struct sockaddr_in from_addr;
-        socklen_t from_len = sizeof(from_addr);
-        recv_len = recvfrom(sock, response, sizeof(response), 0,
-                             (struct sockaddr *) &from_addr, &from_len);
-
-        if (recv_len < 0) {
-            /* timeout (EAGAIN/EWOULDBLOCK) -> tenta novamente */
-            continue;
-        }
-
-        /* Confere se a resposta corresponde ao Transaction ID enviado */
-        dns_header_t *resp_hdr = (dns_header_t *) response;
-        if (ntohs(resp_hdr->id) != query_id) {
-            /* pacote de outra transacao; ignora e tenta de novo */
-            recv_len = -1;
-            continue;
-        }
-
-        break; /* resposta valida recebida */
+        recv_len = aguardar_resposta(sock, query_id, response, sizeof(response));
     }
 
     close(sock);
