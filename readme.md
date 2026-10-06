@@ -23,16 +23,21 @@ O desenvolvimento e os testes da aplicação foram realizados em:
 
 ## 3. Como construir (compilar) a aplicação
 
-Nenhuma dependência externa é necessária além do GCC padrão.
+Nenhuma dependência externa é necessária além do GCC e do `make`. O código é dividido em três módulos (`clienteDNS.c`, `dns_encode.c` e `dns_parse.c`), compilados pelo [Makefile](Makefile):
 
 ```bash
-gcc -Wall -Wextra -o dns_client dns_client.c
+make
 ```
 
-- `-Wall -Wextra`: habilita avisos adicionais do compilador, usados durante o desenvolvimento para garantir um código livre de warnings.
+- O Makefile usa `gcc -Wall -Wextra -std=c99`, garantindo um código livre de warnings.
 - O comando gera o executável `dns_client` no diretório atual.
+- Para remover os objetos e o executável: `make clean`.
 
-Não há uso de Makefile, bibliotecas externas ou passos adicionais de configuração.
+Alternativamente, sem o `make`:
+
+```bash
+gcc -Wall -Wextra -std=c99 -o dns_client clienteDNS.c dns_encode.c dns_parse.c
+```
 
 ## 4. Como executar a aplicação
 
@@ -55,7 +60,7 @@ Não há uso de Makefile, bibliotecas externas ou passos adicionais de configura
 
 ## 5. Telas / Instruções de uso (cenários de saída)
 
-A aplicação sempre imprime uma única linha na saída padrão (`stdout`), variando conforme o resultado da consulta:
+O resultado de toda consulta (sucesso ou falha) é impresso em uma única linha na saída padrão (`stdout`), variando conforme o resultado. Apenas erros de uso da linha de comando (5.5) são enviados à saída de erro (`stderr`):
 
 ### 5.1 Resolução bem-sucedida
 
@@ -88,6 +93,8 @@ Nao foi possível coletar entrada MX para unb.br
 Nesse cenário, o cliente aguarda até **2 segundos** por tentativa e realiza no máximo **3 tentativas** antes de reportar a falha (tempo total máximo de espera: ~6 segundos).
 
 ### 5.5 Uso incorreto (número de argumentos inválido)
+
+Mensagem enviada ao `stderr`; o programa termina com código de saída diferente de zero. O mesmo vale para IP de servidor inválido e rótulo de domínio inválido.
 
 ```
 $ ./dns_client

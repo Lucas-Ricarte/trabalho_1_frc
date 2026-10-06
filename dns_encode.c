@@ -1,6 +1,4 @@
-/*
- * dns_encode.c - Codificacao de nomes e construcao de consultas DNS
- */
+/* dns_encode.c - Montagem da consulta DNS */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,10 +7,7 @@
 
 #include "dns_encode.h"
 
-/* ------------------------------------------------------------------ */
-/* Codifica um nome de dominio no formato de "labels" do DNS:
- * cada rotulo eh prefixado pelo seu tamanho em 1 byte, terminando com
- * um byte 0x00. Ex: "unb.br" -> 03 'u''n''b' 02 'b''r' 00            */
+/* Gera o QNAME: cada rótulo precedido do seu tamanho, terminado em 0x00. */
 int encode_qname(const char *domain, unsigned char *buffer) {
     int pos = 0;
     const char *start = domain;
@@ -38,9 +33,7 @@ int encode_qname(const char *domain, unsigned char *buffer) {
     return pos;
 }
 
-/* Monta o pacote de consulta DNS completo (header + question) para o
- * dominio informado, tipo MX, classe IN. Retorna o tamanho total do
- * pacote em bytes e devolve o Transaction ID gerado via out_id.       */
+/* Monta header + question (MX, IN) e devolve o tamanho do pacote. */
 int build_query(const char *domain, unsigned char *buffer, uint16_t *out_id) {
     dns_header_t *hdr = (dns_header_t *) buffer;
 

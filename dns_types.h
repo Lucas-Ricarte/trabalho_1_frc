@@ -1,24 +1,20 @@
-/*
- * dns_types.h - Tipos, constantes e estruturas comuns do cliente DNS
- * ------------------------------------------------------------------
- * Compartilhado por todos os modulos do cliente DNS (trabalho 01).
- */
+/*dns_types.h - Tipos, constantes e estruturas comuns do cliente dns*/
 
 #ifndef DNS_TYPES_H
 #define DNS_TYPES_H
 
 #include <stdint.h>
 
-/* ---- Constantes -------------------------------------------------- */
+/*Constantes*/
 #define DNS_PORT        53
-#define MAX_PACKET      512     /* payload UDP padrao (sem EDNS) */
+#define MAX_PACKET      512     /* payload UDP padrao (sem edns) */
 #define MAX_NAME_LEN    256
 #define TIMEOUT_SEC     2
 #define MAX_TENTATIVAS  3
 #define QTYPE_MX        15
 #define QCLASS_IN       1
 
-/* ---- Cabecalho DNS (12 bytes fixos) ------------------------------ */
+/*Cabecalho dns - 12 bytes*/
 #pragma pack(push, 1)
 typedef struct {
     uint16_t id;
@@ -30,12 +26,12 @@ typedef struct {
 } dns_header_t;
 #pragma pack(pop)
 
-/* ---- Resultado da consulta --------------------------------------- */
+/*Resultado da consulta*/
 typedef enum {
     RES_OK,
-    RES_NXDOMAIN,       /* dominio nao existe (RCODE = 3) */
-    RES_SEM_MX,         /* dominio existe mas nao ha registro MX */
-    RES_ERRO_SERVIDOR   /* outro RCODE de erro */
+    RES_NXDOMAIN,       /*dominio nao existe*/
+    RES_SEM_MX,         /*dominio existe mas nao ha registro mx*/
+    RES_ERRO_SERVIDOR   /*outro rcode de erro*/
 } resultado_t;
 
-#endif /* DNS_TYPES_H */
+#endif /*DNS_TYPES_H*/

@@ -1,16 +1,11 @@
-/*
- * dns_parse.c - Parsing de respostas DNS
- */
+/*dns_parse.c - Parsing de respostas dns*/
 
 #include <string.h>
 #include <arpa/inet.h>
 
 #include "dns_parse.h"
 
-/* ------------------------------------------------------------------ */
-/* Decodifica um nome de dominio a partir da posicao "ptr" dentro do
- * pacote "buffer" (necessario ter o inicio do pacote para resolver
- * ponteiros de compressao - RFC 1035, secao 4.1.4).                   */
+/* Decodifica um nome (com compressão) a partir de ptr; consumed recebe os bytes ocupados em ptr. */
 int parse_name(const unsigned char *buffer, const unsigned char *ptr,
                char *out, int *consumed) {
     int pos = 0;
@@ -24,7 +19,7 @@ int parse_name(const unsigned char *buffer, const unsigned char *ptr,
         safety++;
 
         if ((p[0] & 0xC0) == 0xC0) {
-            /* Ponteiro de compressao: 2 bits mais significativos = 11 */
+            /* Ponteiro de compressão (bits 11) */
             if (!jumped) total_consumed += 2;
             int offset = ((p[0] & 0x3F) << 8) | p[1];
             p = buffer + offset;
@@ -44,16 +39,14 @@ int parse_name(const unsigned char *buffer, const unsigned char *ptr,
         }
     }
 
-    if (!jumped) total_consumed += 1; /* byte terminador 0x00 */
+    if (!jumped) total_consumed += 1;
 
     out[pos] = '\0';
     *consumed = total_consumed;
     return pos;
 }
 
-/* ------------------------------------------------------------------ */
-/* Percorre a resposta DNS recebida, procurando o primeiro registro MX.
- * Preenche "exchange" com o nome do servidor de e-mail encontrado.    */
+/* Extrai o primeiro registro MX da resposta e classifica o resultado. */
 resultado_t parse_response(const unsigned char *buffer, int recv_len,
                            char *exchange, size_t exchange_size) {
     if (recv_len < (int) sizeof(dns_header_t)) {
@@ -80,14 +73,14 @@ resultado_t parse_response(const unsigned char *buffer, int recv_len,
     char tmp_name[MAX_NAME_LEN];
     int consumed;
 
-    /* Pula a secao Question (ela vem ecoada na resposta) */
+    /* Pula a seção Question, ecoada na resposta */
     for (int i = 0; i < qdcount; i++) {
         parse_name(buffer, cursor, tmp_name, &consumed);
         cursor += consumed;
-        cursor += 4; /* QTYPE (2) + QCLASS (2) */
+        cursor += 4; /* QTYPE + QCLASS */
     }
 
-    /* Percorre a secao Answer procurando o primeiro registro MX */
+    /* Procura o primeiro registro MX na seção Answer */
     for (int i = 0; i < ancount; i++) {
         parse_name(buffer, cursor, tmp_name, &consumed);
         cursor += consumed;
@@ -107,9 +100,8 @@ resultado_t parse_response(const unsigned char *buffer, int recv_len,
         (void) ttl;
 
         if (type == QTYPE_MX) {
-            /* RDATA do MX = PREFERENCE (2 bytes) + EXCHANGE (nome) */
+            /* RDATA do MX: preferência (2 bytes) + nome do servidor */
             const unsigned char *rdata = cursor;
-            /* uint16_t preference = ntohs(*(uint16_t *)rdata); (nao usado na saida) */
             int name_consumed;
             parse_name(buffer, rdata + 2, tmp_name, &name_consumed);
             strncpy(exchange, tmp_name, exchange_size - 1);
@@ -120,6 +112,5 @@ resultado_t parse_response(const unsigned char *buffer, int recv_len,
         cursor += rdlength;
     }
 
-    /* Havia respostas, mas nenhuma era do tipo MX */
     return RES_SEM_MX;
 }
