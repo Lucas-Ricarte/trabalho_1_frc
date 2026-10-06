@@ -23,20 +23,20 @@ O desenvolvimento e os testes da aplicação foram realizados em:
 
 ## 3. Como construir (compilar) a aplicação
 
-Nenhuma dependência externa é necessária além do GCC e do `make`. O código é dividido em três módulos (`clienteDNS.c`, `dns_encode.c` e `dns_parse.c`), compilados pelo [Makefile](Makefile):
+Nenhuma dependência externa é necessária além do GCC e do `make`. O código é dividido em quatro módulos (`main.c`, `dns_client.c`, `dns_encode.c` e `dns_parse.c`), compilados pelo [Makefile](Makefile):
 
 ```bash
 make
 ```
 
 - O Makefile usa `gcc -Wall -Wextra -std=c99`, garantindo um código livre de warnings.
-- O comando gera o executável `dns_client` no diretório atual.
+- O `Makefile` gera o executável `dns_client` no diretório atual.
 - Para remover os objetos e o executável: `make clean`.
 
 Alternativamente, sem o `make`:
 
 ```bash
-gcc -Wall -Wextra -std=c99 -o dns_client clienteDNS.c dns_encode.c dns_parse.c
+gcc -Wall -Wextra -std=c99 -o dns_client main.c dns_client.c dns_encode.c dns_parse.c
 ```
 
 ## 4. Como executar a aplicação
@@ -102,6 +102,11 @@ Uso: ./dns_client <nome_dominio> <ip_servidor_dns>
 ```
 
 ## 6. Detalhes de implementação relevantes
+
+- `main.c` concentra a interface de linha de comando e a apresentação dos resultados.
+- `dns_client.c` encapsula a comunicação UDP, o timeout, as tentativas e a validação do Transaction ID.
+- `dns_client.h` define a interface pública da consulta DNS.
+- `dns_encode.c` e `dns_parse.c` permanecem responsáveis, respectivamente, pela montagem e interpretação das mensagens DNS.
 
 - O payload da consulta DNS é **montado manualmente**, byte a byte, sem uso de bibliotecas de resolução de nomes (não são usadas `getaddrinfo`, `gethostbyname`, `resolv.h`, etc.). Apenas a interface de sockets UDP padrão do sistema operacional é utilizada para o envio/recebimento.
 - **Transaction ID:** gerado aleatoriamente a cada consulta (16 bits) e validado na resposta recebida.

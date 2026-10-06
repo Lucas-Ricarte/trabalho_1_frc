@@ -5,9 +5,9 @@ CC      = gcc
 CFLAGS  = -Wall -Wextra -std=c99
 TARGET  = dns_client
 
-SRCS    = clienteDNS.c dns_encode.c dns_parse.c
+SRCS    = main.c dns_client.c dns_encode.c dns_parse.c
 OBJS    = $(SRCS:.c=.o)
-HEADERS = dns_types.h dns_encode.h dns_parse.h
+HEADERS = dns_types.h dns_client.h dns_encode.h dns_parse.h
 
 all: $(TARGET)
 
