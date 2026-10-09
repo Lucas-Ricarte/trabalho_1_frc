@@ -14,6 +14,42 @@
 #include "dns_encode.h"
 #include "dns_parse.h"
 
+/* Espera ate TIMEOUT_SEC por uma resposta com o ID esperado, ignorando as demais. */
+static int aguardar_resposta(int sock, uint16_t query_id,
+                             unsigned char *response, size_t size) {
+    struct timeval agora, limite;
+    gettimeofday(&limite, NULL);
+    limite.tv_sec += TIMEOUT_SEC;
+
+    for (;;) {
+        gettimeofday(&agora, NULL);
+        struct timeval restante;
+        restante.tv_sec = limite.tv_sec - agora.tv_sec;
+        restante.tv_usec = limite.tv_usec - agora.tv_usec;
+        if (restante.tv_usec < 0) {
+            restante.tv_sec--;
+            restante.tv_usec += 1000000;
+        }
+        if (restante.tv_sec < 0 || (restante.tv_sec == 0 && restante.tv_usec == 0)) {
+            return -1;
+        }
+
+        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &restante, sizeof(restante));
+
+        ssize_t len = recvfrom(sock, response, size, 0, NULL, NULL);
+        if (len < 0) {
+            return -1;
+        }
+
+        if (len >= (ssize_t) sizeof(dns_header_t)) {
+            const dns_header_t *hdr = (const dns_header_t *) response;
+            if (ntohs(hdr->id) == query_id) {
+                return (int) len;
+            }
+        }
+    }
+}
+
 /* Consulta um registro MX e escreve o exchange no buffer de saida. */
 resultado_t dns_query(const char *domain, const char *server_ip,
                       char *exchange, size_t exchange_size) {
@@ -32,17 +68,6 @@ resultado_t dns_query(const char *domain, const char *server_ip,
         return RES_ERRO_SERVIDOR;
     }
 
-    /* Configura o tempo maximo de espera por cada resposta. */
-    struct timeval timeout;
-    timeout.tv_sec = TIMEOUT_SEC;
-    timeout.tv_usec = 0;
-    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,
-                   &timeout, sizeof(timeout)) < 0) {
-        perror("setsockopt");
-        close(sock);
-        return RES_ERRO_SERVIDOR;
-    }
-
     /* Configura o endereco IPv4 e a porta padrao do servico DNS. */
     struct sockaddr_in server_addr;
     memset(&server_addr, 0, sizeof(server_addr));
@@ -58,7 +83,7 @@ resultado_t dns_query(const char *domain, const char *server_ip,
     int recv_len = -1;
 
     /* Envia novamente a consulta quando ocorre timeout ou resposta invalida. */
-    for (int tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
+    for (int tentativa = 1; tentativa <= MAX_TENTATIVAS && recv_len < 0; tentativa++) {
         ssize_t sent = sendto(sock, query, query_len, 0,
                                (struct sockaddr *) &server_addr,
                                sizeof(server_addr));
@@ -68,30 +93,7 @@ resultado_t dns_query(const char *domain, const char *server_ip,
             return RES_ERRO_SERVIDOR;
         }
 
-        struct sockaddr_in from_addr;
-        socklen_t from_len = sizeof(from_addr);
-        recv_len = recvfrom(sock, response, sizeof(response), 0,
-                            (struct sockaddr *) &from_addr, &from_len);
-
-        if (recv_len < 0) {
-            /* Timeout ou falha no recebimento: realiza nova tentativa. */
-            continue;
-        }
-
-        if (recv_len < (int) sizeof(dns_header_t)) {
-            /* Resposta menor que o cabecalho DNS nao pode ser interpretada. */
-            recv_len = -1;
-            continue;
-        }
-
-        dns_header_t *response_header = (dns_header_t *) response;
-        if (ntohs(response_header->id) != query_id) {
-            /* Ignora pacote pertencente a outra transacao DNS. */
-            recv_len = -1;
-            continue;
-        }
-
-        break;
+        recv_len = aguardar_resposta(sock, query_id, response, sizeof(response));
     }
 
     close(sock);
