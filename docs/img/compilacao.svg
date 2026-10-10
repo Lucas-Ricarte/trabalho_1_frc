@@ -7,7 +7,7 @@
 <circle cx="60" cy="17" r="6" fill="#28c840"/>
 <text x="639.5" y="22" fill="#9da5b4" font-family="DejaVu Sans, Arial, sans-serif" font-size="13" text-anchor="middle">bash: trabalho_1_frc</text>
 <g font-family="DejaVu Sans Mono, Consolas, Menlo, monospace" font-size="14" xml:space="preserve">
-<text x="20" y="58"><tspan fill="#7fd18b">aluno@linux:~/trabalho_1_frc$</tspan><tspan fill="#f5f5f5"> make</tspan></text>
+<text x="20" y="58"><tspan fill="#7fd18b">feijo@ubuntu-22-lts:~/trabalho_1_frc$</tspan><tspan fill="#f5f5f5"> make</tspan></text>
 <text x="20" y="79" fill="#8b949e">gcc -Wall -Wextra -pedantic -std=c99 -D_POSIX_C_SOURCE=200809L -Iinclude -c src/dns_client.c -o src/dns_client.o</text>
 <text x="20" y="100" fill="#8b949e">gcc -Wall -Wextra -pedantic -std=c99 -D_POSIX_C_SOURCE=200809L -Iinclude -c src/dns_encode.c -o src/dns_encode.o</text>
 <text x="20" y="121" fill="#8b949e">gcc -Wall -Wextra -pedantic -std=c99 -D_POSIX_C_SOURCE=200809L -Iinclude -c src/dns_parse.c -o src/dns_parse.o</text>
