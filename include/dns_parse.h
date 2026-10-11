@@ -5,7 +5,6 @@
 
 #include "dns_types.h"
 
-resultado_t interpretar_resposta(const unsigned char *resposta, int tamanho,
-                                 char *servidor_email, size_t capacidade);
+resultado_t interpretar_resposta(const unsigned char *resposta, int tamanho, char *servidor_email, size_t capacidade);
 
 #endif

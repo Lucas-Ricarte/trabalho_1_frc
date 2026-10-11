@@ -48,14 +48,11 @@ static int aguardar_resposta(int sock, uint16_t id, unsigned char *resposta)
     return -1;
 }
 
-resultado_t consultar_mx(const char *dominio, const char *ip_servidor,
-                         char *servidor_email, size_t capacidade)
+resultado_t consultar_mx(const char *dominio, const char *ip_servidor, char *servidor_email, size_t capacidade)
 {
     struct sockaddr_in servidor = { .sin_family = AF_INET, .sin_port = htons(PORTA_DNS) };
 
-    if (inet_pton(AF_INET, ip_servidor, &servidor.sin_addr) != 1) {
-        return RES_IP_INVALIDO;
-    }
+    if (inet_pton(AF_INET, ip_servidor, &servidor.sin_addr) != 1) return RES_IP_INVALIDO;
 
     unsigned char consulta[MAX_PACOTE];
     uint16_t id = (uint16_t) rand();
@@ -76,8 +73,7 @@ resultado_t consultar_mx(const char *dominio, const char *ip_servidor,
     int tamanho_resposta = -1;
 
     for (int tentativa = 0; tentativa < MAX_TENTATIVAS && tamanho_resposta < 0; tentativa++) {
-        if (sendto(sock, consulta, tamanho_consulta, 0,
-                   (struct sockaddr *) &servidor, sizeof(servidor)) < 0) {
+        if (sendto(sock, consulta, tamanho_consulta, 0, (struct sockaddr *) &servidor, sizeof(servidor)) < 0) {
             perror("sendto");
             break;
         }

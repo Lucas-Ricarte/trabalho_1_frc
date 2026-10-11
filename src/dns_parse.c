@@ -12,8 +12,7 @@
 #define TAMANHO_CAMPOS_REGISTRO     10
 #define TAMANHO_PREFERENCIA_MX      2
 
-static int ler_nome(const unsigned char *pacote, int tamanho_pacote, int posicao,
-                    char *nome, size_t capacidade)
+static int ler_nome(const unsigned char *pacote, int tamanho_pacote, int posicao, char *nome, size_t capacidade)
 {
     int posicao_apos_nome = -1;
     size_t escritos = 0;
@@ -74,8 +73,7 @@ static int ler_nome(const unsigned char *pacote, int tamanho_pacote, int posicao
     return posicao + 1;
 }
 
-resultado_t interpretar_resposta(const unsigned char *resposta, int tamanho,
-                                 char *servidor_email, size_t capacidade)
+resultado_t interpretar_resposta(const unsigned char *resposta, int tamanho, char *servidor_email, size_t capacidade)
 {
     if (tamanho < TAMANHO_CABECALHO) {
         return RES_FALHA;
